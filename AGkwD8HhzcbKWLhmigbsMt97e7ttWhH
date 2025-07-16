@@ -1,7 +1,27 @@
 -- 🔒 Anti-Leak / Place Lock
 local expectedPlaceId = 126884695634066
 if game.PlaceId ~= expectedPlaceId then
-    game:GetService("Players").LocalPlayer:Kick("⚠️ This script is not authorized to run in this game.")
+    game:GetService("Players").LocalPlayer:Kick("Unsupported Game.")
+    return
+end
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Track how many times the script has run for this player
+if not player:FindFirstChild("ScriptRunCount") then
+    local countValue = Instance.new("IntValue")
+    countValue.Name = "ScriptRunCount"
+    countValue.Value = 0
+    countValue.Parent = player
+end
+
+local countValue = player:FindFirstChild("ScriptRunCount")
+
+countValue.Value = countValue.Value + 1
+
+if countValue.Value > 5 then
+    player:Kick("You have executed the script too many times!")
     return
 end
 
@@ -12,7 +32,7 @@ Rayfield:LoadConfiguration()
 local Window = Rayfield:CreateWindow({
    Name = "🌃 Egg Randomizer 🎇",
    LoadingTitle = "Loading Egg Randomizer",
-   LoadingSubtitle = "By kenimm1",
+   LoadingSubtitle = "By keminn1",
    Theme = "Default",
    ToggleUIKeybind = "K",
 
@@ -21,11 +41,11 @@ local Window = Rayfield:CreateWindow({
       FileName = "EggRandomizer"
    },
 
-   KeySystem = true,
+   KeySystem = false,
    KeySettings = {
       Title = "Egg Randomizer Key",
       Subtitle = "Access Required",
-      Note = "Enter the key: Enjoy!",
+      Note = "Enjoy!",
       FileName = "RandomizerKey",
       SaveKey = false,
       GrabKeyFromSite = false,
@@ -37,9 +57,7 @@ local Window = Rayfield:CreateWindow({
 local MainTab = Window:CreateTab("Pet Randomizer", 4483362458)
 
 -- 🧠 Game Services
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local player = Players.LocalPlayer
 
 -- 🐣 Pet Table
 local petTable = {
