@@ -1,15 +1,3 @@
--- Execute Control
-local maxExecutes = 5
-if not getgenv().executeCount then
-    getgenv().executeCount = 0
-end
-
-getgenv().executeCount = getgenv().executeCount + 1
-if getgenv().executeCount > maxExecutes then
-    game:GetService("Players").LocalPlayer:Kick("Many Execute Detected.")
-    return
-end
-
 -- 🔒 Anti-Leak / Place Lock
 local expectedPlaceId = 126884695634066
 if game.PlaceId ~= expectedPlaceId then
@@ -37,7 +25,7 @@ local Window = Rayfield:CreateWindow({
    KeySettings = {
       Title = "Egg Randomizer Key",
       Subtitle = "Access Required",
-      Note = "Key Is:Enjoy!",
+      Note = "Enter the key: Enjoy!",
       FileName = "RandomizerKey",
       SaveKey = false,
       GrabKeyFromSite = false,
@@ -77,7 +65,8 @@ local autoRunning = false
 
 -- 🌟 ESP Function
 local function applyESP(model, petName)
-    if model:FindFirstChild("PetBillboard", true) or model:FindFirstChild("ESPHighlight") then return end
+    if model:FindFirstChild("PetBillboard", true) then model:FindFirstChild("PetBillboard", true):Destroy() end
+    if model:FindFirstChild("ESPHighlight") then model:FindFirstChild("ESPHighlight"):Destroy() end
     if not espEnabled then return end
 
     local part = model:FindFirstChildWhichIsA("BasePart")
@@ -93,7 +82,7 @@ local function applyESP(model, petName)
     local label = Instance.new("TextLabel", labelGui)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = petName .. " (" .. model.Name .. ")"
+    label.Text = model.Name .. " | " .. petName
     label.TextColor3 = Color3.new(1, 1, 1)
     label.TextStrokeTransparency = 0.4
     label.TextScaled = true
@@ -121,9 +110,12 @@ local function getNearbyEggs(radius)
 
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") and petTable[obj.Name] then
-            local cf, _ = obj:GetBoundingBox()
-            local dist = (cf.Position - root.Position).Magnitude
+            local dist = (obj:GetModelCFrame().Position - root.Position).Magnitude
             if dist <= radius then
+                if not truePetMap[obj] then
+                    local petList = petTable[obj.Name]
+                    truePetMap[obj] = petList[math.random(1, #petList)]
+                end
                 table.insert(eggs, obj)
             end
         end
@@ -168,9 +160,7 @@ MainTab:CreateToggle({
         espEnabled = value
         for _, egg in pairs(getNearbyEggs(60)) do
             if espEnabled then
-                if truePetMap[egg] then
-                    applyESP(egg, truePetMap[egg])
-                end
+                applyESP(egg, truePetMap[egg])
             else
                 removeESP(egg)
             end
@@ -215,21 +205,7 @@ MainTab:CreateToggle({
     end
 })
 
--- 🧹 Clear ESP Button
-MainTab:CreateButton({
-    Name = "🧹 Clear ESP",
-    Callback = function()
-        for egg in pairs(truePetMap) do
-            removeESP(egg)
-        end
-        Rayfield:Notify({Title = "ESP Cleared", Content = "Cleared Please Off And Turn On Esp To See Pets.", Duration = 2})
-    end
-})
-
 -- ✅ Initial ESP
 for _, egg in pairs(getNearbyEggs(60)) do
-    local pets = petTable[egg.Name]
-    local chosen = pets[math.random(1, #pets)]
-    truePetMap[egg] = chosen
-    applyESP(egg, chosen)
+    applyESP(egg, truePetMap[egg])
 end
