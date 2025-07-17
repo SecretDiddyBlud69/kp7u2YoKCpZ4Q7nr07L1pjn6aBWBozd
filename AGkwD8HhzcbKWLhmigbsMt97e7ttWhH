@@ -1,14 +1,32 @@
--- 🔒 Anti-Leak / Place Lock
+--[[===========================================================
+  Full Egg Randomizer Script with Secure 120s Fullscreen Loader
+  + Percentage Overlay + Safe Rayfield Load + Nil Guards
+=============================================================]]
+
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService") -- ADDED
+
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- === CONFIGURATION ===
+local LOAD_DURATION = 120  -- seconds
+local FADE_TIME = 1.5
+local LOCK_PLAYER_CONTROL = true
+local LOCK_CAMERA = true
+
 local expectedPlaceId = 126884695634066
+
+-- Anti-Leak / Place Lock
 if game.PlaceId ~= expectedPlaceId then
-    game:GetService("Players").LocalPlayer:Kick("Unsupported Game.")
+    player:Kick("Unsupported Game.")
     return
 end
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
--- Track how many times the script has run for this player
+-- Track Script Run Count
 if not player:FindFirstChild("ScriptRunCount") then
     local countValue = Instance.new("IntValue")
     countValue.Name = "ScriptRunCount"
@@ -17,213 +35,390 @@ if not player:FindFirstChild("ScriptRunCount") then
 end
 
 local countValue = player:FindFirstChild("ScriptRunCount")
-
 countValue.Value = countValue.Value + 1
-
 if countValue.Value > 5 then
     player:Kick("You have executed the script too many times!")
     return
 end
 
--- Load Rayfield UI
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-Rayfield:LoadConfiguration()
-
-local Window = Rayfield:CreateWindow({
-   Name = "🌃 Egg Randomizer 🎇",
-   LoadingTitle = "Loading Egg Randomizer",
-   LoadingSubtitle = "By keminn1",
-   Theme = "Default",
-   ToggleUIKeybind = "K",
-
-   ConfigurationSaving = {
-      Enabled = true,
-      FileName = "EggRandomizer"
-   },
-
-   KeySystem = false,
-   KeySettings = {
-      Title = "Egg Randomizer Key",
-      Subtitle = "Access Required",
-      Note = "Enjoy!",
-      FileName = "RandomizerKey",
-      SaveKey = false,
-      GrabKeyFromSite = false,
-      Key = {"Enjoy!"}
-   }
-})
-
--- Create Main Tab
-local MainTab = Window:CreateTab("Pet Randomizer", 4483362458)
-
--- 🧠 Game Services
-local Workspace = game:GetService("Workspace")
-
--- 🐣 Pet Table
-local petTable = {
-    ["Common Egg"] = { "Dog", "Bunny", "Golden Lab" },
-    ["Uncommon Egg"] = { "Chicken", "Black Bunny", "Cat", "Deer" },
-    ["Rare Egg"] = { "Pig", "Monkey", "Rooster", "Orange Tabby", "Spotted Deer" },
-    ["Legendary Egg"] = { "Cow", "Polar Bear", "Sea Otter", "Turtle", "Silver Monkey" },
-    ["Mythical Egg"] = { "Grey Mouse", "Brown Mouse", "Squirrel", "Red Giant Ant" },
-    ["Bug Egg"] = { "Snail", "Caterpillar", "Giant Ant", "Praying Mantis" },
-    ["Night Egg"] = { "Frog", "Hedgehog", "Mole", "Echo Frog", "Night Owl" },
-    ["Bee Egg"] = { "Bee", "Honey Bee", "Bear Bee", "Petal Bee" },
-    ["AntiBee Egg"] = { "Wasp", "Moth", "Tarantula Hawk" },
-    ["Oasis Egg"] = { "Meerkat", "Sand Snake", "Axolotl" },
-    ["Paradise Egg"] = { "Ostrich", "Peacock", "Capybara" },
-    ["Dinosaurs Egg"] = { "Raptor", "Triceratops", "Stegosaurus" },
-    ["Primal Egg"] = { "Parasaurolophus", "Iguanodon", "Pachycephalosaurus" },
-}
-
-local espEnabled = true
-local truePetMap = {}
-local cooldown = false
-local autoRunning = false
-
--- 🌟 ESP Function
-local function applyESP(model, petName)
-    if model:FindFirstChild("PetBillboard", true) then model:FindFirstChild("PetBillboard", true):Destroy() end
-    if model:FindFirstChild("ESPHighlight") then model:FindFirstChild("ESPHighlight"):Destroy() end
-    if not espEnabled then return end
-
-    local part = model:FindFirstChildWhichIsA("BasePart")
-    if not part then return end
-
-    local labelGui = Instance.new("BillboardGui", part)
-    labelGui.Name = "PetBillboard"
-    labelGui.Size = UDim2.new(0, 250, 0, 50)
-    labelGui.StudsOffset = Vector3.new(0, 4.5, 0)
-    labelGui.AlwaysOnTop = true
-    labelGui.MaxDistance = 500
-
-    local label = Instance.new("TextLabel", labelGui)
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = model.Name .. " | " .. petName
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextStrokeTransparency = 0.4
-    label.TextScaled = true
-    label.Font = Enum.Font.FredokaOne
-
-    local hl = Instance.new("Highlight", model)
-    hl.Name = "ESPHighlight"
-    hl.FillColor = Color3.fromRGB(255, 200, 0)
-    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-    hl.FillTransparency = 0.7
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.Adornee = model
-end
-
-local function removeESP(model)
-    if model:FindFirstChild("PetBillboard", true) then model:FindFirstChild("PetBillboard", true):Destroy() end
-    if model:FindFirstChild("ESPHighlight") then model:FindFirstChild("ESPHighlight"):Destroy() end
-end
-
--- 📍 Nearby Eggs
-local function getNearbyEggs(radius)
-    local eggs = {}
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return eggs end
-
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and petTable[obj.Name] then
-            local dist = (obj:GetModelCFrame().Position - root.Position).Magnitude
-            if dist <= radius then
-                if not truePetMap[obj] then
-                    local petList = petTable[obj.Name]
-                    truePetMap[obj] = petList[math.random(1, #petList)]
-                end
-                table.insert(eggs, obj)
-            end
-        end
+-- Freeze and lock player movement
+local originalWalkSpeed, originalJumpPower
+local function freezeCharacter()
+    if not LOCK_PLAYER_CONTROL or not player.Character then return end
+    local hum = player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        originalWalkSpeed, originalJumpPower = hum.WalkSpeed, hum.JumpPower
+        hum.WalkSpeed, hum.JumpPower = 0, 0
     end
-    return eggs
 end
 
--- 🎲 Randomize Function
-local function randomizeEggs(callback)
-    if cooldown then
-        Rayfield:Notify({Title = "⏳ Cooldown Active", Content = "Please wait before randomizing again.", Duration = 3})
+local function restoreCharacter()
+    if not LOCK_PLAYER_CONTROL or not player.Character then return end
+    local hum = player.Character:FindFirstChildOfClass("Humanoid")
+    if hum and originalWalkSpeed then
+        hum.WalkSpeed, hum.JumpPower = originalWalkSpeed, originalJumpPower
+    end
+end
+
+-- Lock and unlock camera
+local function lockCamera()
+    if LOCK_CAMERA then
+        local cam = Workspace.CurrentCamera
+        cam.CameraType = Enum.CameraType.Scriptable
+        cam.CFrame = CFrame.new(0, 1000, 0)  -- arbitrary position to avoid game view
+    end
+end
+
+local function unlockCamera()
+    if LOCK_CAMERA then
+        Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    end
+end
+
+-- Create Loader GUI
+local loaderGui = Instance.new("ScreenGui")
+loaderGui.Name = "SecureLoader"
+loaderGui.IgnoreGuiInset = true
+loaderGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+loaderGui.Parent = PlayerGui
+
+local loaderFrame = Instance.new("Frame")
+loaderFrame.Size = UDim2.new(1, 0, 1, 0)
+loaderFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+loaderFrame.BorderSizePixel = 0
+loaderFrame.Parent = loaderGui
+
+local loaderText = Instance.new("TextLabel")
+loaderText.Size = UDim2.new(1, 0, 0.3, 0)
+loaderText.Position = UDim2.new(0, 0, 0.35, 0)
+loaderText.BackgroundTransparency = 1
+loaderText.Text = "Loading... Do Not Leave The Game!"
+loaderText.Font = Enum.Font.FredokaOne
+loaderText.TextSize = 48
+loaderText.TextColor3 = Color3.new(1, 1, 1)
+loaderText.Parent = loaderFrame
+
+local progressBarBG = Instance.new("Frame")
+progressBarBG.Size = UDim2.new(0.6, 0, 0.04, 0)
+progressBarBG.Position = UDim2.new(0.2, 0, 0.65, 0)
+progressBarBG.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+progressBarBG.BorderSizePixel = 0
+progressBarBG.Parent = loaderFrame
+
+local progressBarFill = Instance.new("Frame")
+progressBarFill.Size = UDim2.new(0, 0, 1, 0)
+progressBarFill.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+progressBarFill.BorderSizePixel = 0
+progressBarFill.Parent = progressBarBG
+
+-- PERCENTAGE OVERLAY (ADDED)
+local progressPercentage = Instance.new("TextLabel")
+progressPercentage.Size = UDim2.new(1, 0, 1, 0)
+progressPercentage.Position = UDim2.new(0, 0, 0, 0)
+progressPercentage.BackgroundTransparency = 1
+progressPercentage.TextColor3 = Color3.new(1, 1, 1)
+progressPercentage.Font = Enum.Font.FredokaOne
+progressPercentage.TextSize = 24
+progressPercentage.TextStrokeTransparency = 0.5
+progressPercentage.TextScaled = true
+progressPercentage.Text = "0%"
+progressPercentage.Parent = progressBarBG
+
+-- Freeze + Lock
+freezeCharacter()
+lockCamera()
+
+-- Tween progress bar fill over LOAD_DURATION seconds (kept)
+local tweenInfo = TweenInfo.new(LOAD_DURATION, Enum.EasingStyle.Linear)
+local tween = TweenService:Create(progressBarFill, tweenInfo, {Size = UDim2.new(1, 0, 1, 0)})
+tween:Play()
+
+-- REAL-TIME PERCENTAGE UPDATER (ADDED)
+local startTime = tick()
+local updateConnection
+updateConnection = RunService.Heartbeat:Connect(function()
+    local elapsed = tick() - startTime
+    local percent = math.clamp(elapsed / LOAD_DURATION, 0, 1) * 100
+    progressPercentage.Text = string.format("%.0f%%", percent)
+    if percent >= 100 then
+        updateConnection:Disconnect()
+    end
+end)
+
+-- Egg Randomizer script encapsulated as function for deferred init after loading
+local function InitializeEggRandomizer()
+    -- === SAFE RAYFIELD LOAD PATCH ===
+    local Rayfield
+    do
+        local got, httpOrErr = pcall(function()
+            return game:HttpGet('https://sirius.menu/rayfield')
+        end)
+        if not got or type(httpOrErr) ~= "string" then
+            warn("Rayfield HttpGet failed:", httpOrErr)
+            player:Kick("Failed to load UI. Retry.")
+            return
+        end
+
+        local loadOk, loadFuncOrErr = pcall(loadstring, httpOrErr)
+        if not loadOk or type(loadFuncOrErr) ~= "function" then
+            warn("Rayfield loadstring failed:", loadFuncOrErr)
+            player:Kick("Failed to load UI. Retry.")
+            return
+        end
+
+        local execOk, execResult = pcall(loadFuncOrErr)
+        if not execOk or not execResult then
+            warn("Rayfield execution failed:", execResult)
+            player:Kick("Failed to load UI. Retry.")
+            return
+        end
+
+        Rayfield = execResult
+    end
+
+    -- Defensive: ensure interface
+    if not Rayfield or type(Rayfield) ~= "table" then
+        warn("Rayfield object invalid:", Rayfield)
+        player:Kick("Failed to build UI. Retry.")
         return
     end
 
-    cooldown = true
-    local timer = 10
-    coroutine.wrap(function()
-        while timer > 0 do
-            callback("Cooldown: " .. timer .. "s left...")
-            wait(1)
-            timer -= 1
-        end
-        callback("🎲 Randomize Pets")
-        cooldown = false
-    end)()
+    -- Safe call LoadConfiguration
+    pcall(function() Rayfield:LoadConfiguration() end)
 
-    local eggs = getNearbyEggs(60)
-    for _, egg in ipairs(eggs) do
-        local pets = petTable[egg.Name]
-        local chosen = pets[math.random(1, #pets)]
-        truePetMap[egg] = chosen
-        applyESP(egg, chosen)
+    local Window = Rayfield:CreateWindow({
+        Name = "🌃 Egg Randomizer 🎇",
+        LoadingTitle = "Loading Egg Randomizer",
+        LoadingSubtitle = "By keminn1",
+        Theme = "Default",
+        ToggleUIKeybind = "K",
+
+        ConfigurationSaving = {
+            Enabled = true,
+            FileName = "EggRandomizer"
+        },
+
+        KeySystem = false,
+        KeySettings = {
+            Title = "Egg Randomizer Key",
+            Subtitle = "Access Required",
+            Note = "Enjoy!",
+            FileName = "RandomizerKey",
+            SaveKey = false,
+            GrabKeyFromSite = false,
+            Key = {"Enjoy!"}
+        }
+    })
+
+    -- Create Main Tab
+    local MainTab = Window:CreateTab("Pet Randomizer", 4483362458)
+
+    -- 🧠 Game Services (localize for re-entrancy)
+    local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+
+    -- 🐣 Pet Table
+    local petTable = {
+        ["Common Egg"] = { "Dog", "Bunny", "Golden Lab" },
+        ["Uncommon Egg"] = { "Chicken", "Black Bunny", "Cat", "Deer" },
+        ["Rare Egg"] = { "Pig", "Monkey", "Rooster", "Orange Tabby", "Spotted Deer" },
+        ["Legendary Egg"] = { "Cow", "Polar Bear", "Sea Otter", "Turtle", "Silver Monkey" },
+        ["Mythical Egg"] = { "Grey Mouse", "Brown Mouse", "Squirrel", "Red Giant Ant" },
+        ["Bug Egg"] = { "Snail", "Caterpillar", "Giant Ant", "Praying Mantis" },
+        ["Night Egg"] = { "Frog", "Hedgehog", "Mole", "Echo Frog", "Night Owl" },
+        ["Bee Egg"] = { "Bee", "Honey Bee", "Bear Bee", "Petal Bee" },
+        ["AntiBee Egg"] = { "Wasp", "Moth", "Tarantula Hawk" },
+        ["Oasis Egg"] = { "Meerkat", "Sand Snake", "Axolotl" },
+        ["Paradise Egg"] = { "Ostrich", "Peacock", "Capybara" },
+        ["Dinosaurs Egg"] = { "Raptor", "Triceratops", "Stegosaurus" },
+        ["Primal Egg"] = { "Parasaurolophus", "Iguanodon", "Pachycephalosaurus" },
+    }
+
+    local espEnabled = true
+    local truePetMap = {}
+    local cooldown = false
+    local autoRunning = false
+
+    -- 🌟 ESP Function
+    local function applyESP(model, petName)
+        if not model then return end
+        local oldBB = model:FindFirstChild("PetBillboard", true)
+        if oldBB then oldBB:Destroy() end
+        local oldHL = model:FindFirstChild("ESPHighlight")
+        if oldHL then oldHL:Destroy() end
+        if not espEnabled then return end
+
+        local part = model:FindFirstChildWhichIsA("BasePart")
+        if not part then return end
+
+        local labelGui = Instance.new("BillboardGui")
+        labelGui.Name = "PetBillboard"
+        labelGui.Size = UDim2.new(0, 250, 0, 50)
+        labelGui.StudsOffset = Vector3.new(0, 4.5, 0)
+        labelGui.AlwaysOnTop = true
+        labelGui.MaxDistance = 500
+        labelGui.Parent = part
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = model.Name .. " | " .. tostring(petName)
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextStrokeTransparency = 0.4
+        label.TextScaled = true
+        label.Font = Enum.Font.FredokaOne
+        label.Parent = labelGui
+
+        local hl = Instance.new("Highlight")
+        hl.Name = "ESPHighlight"
+        hl.FillColor = Color3.fromRGB(255, 200, 0)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.FillTransparency = 0.7
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.Adornee = model
+        hl.Parent = model
     end
-    Rayfield:Notify({Title = "✅ Eggs Randomized", Content = "Total: " .. #eggs, Duration = 3})
-end
 
--- 👁️ ESP Toggle
-MainTab:CreateToggle({
-    Name = "👁️ ESP",
-    CurrentValue = true,
-    Callback = function(value)
-        espEnabled = value
-        for _, egg in pairs(getNearbyEggs(60)) do
-            if espEnabled then
-                applyESP(egg, truePetMap[egg])
-            else
-                removeESP(egg)
-            end
-        end
+    local function removeESP(model)
+        if not model then return end
+        local oldBB = model:FindFirstChild("PetBillboard", true)
+        if oldBB then oldBB:Destroy() end
+        local oldHL = model:FindFirstChild("ESPHighlight")
+        if oldHL then oldHL:Destroy() end
     end
-})
 
--- 🎲 Randomize Button
-local randomizeButton
-randomizeButton = MainTab:CreateButton({
-    Name = "🎲 Randomize Pets",
-    Callback = function()
-        randomizeEggs(function(text)
-            if randomizeButton and randomizeButton.Set then
-                randomizeButton:Set(text)
-            end
-        end)
-    end
-})
+    -- 📍 Nearby Eggs
+    local function getNearbyEggs(radius)
+        local eggs = {}
+        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return eggs end
 
--- 🔁 Auto Randomizer Toggle
-MainTab:CreateToggle({
-    Name = "🔁 Auto Randomizer",
-    CurrentValue = false,
-    Callback = function(value)
-        autoRunning = value
-        if autoRunning then
-            Rayfield:Notify({Title = "🔁 Auto Mode", Content = "Auto Randomizing every 10s", Duration = 3})
-            coroutine.wrap(function()
-                while autoRunning do
-                    randomizeEggs(function(text)
-                        if randomizeButton and randomizeButton.Set then
-                            randomizeButton:Set(text)
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and petTable[obj.Name] then
+                local ok, cf = pcall(function() return obj:GetModelCFrame() end) -- PATCH: protect call
+                if ok and cf then
+                    local dist = (cf.Position - root.Position).Magnitude
+                    if dist <= radius then
+                        if not truePetMap[obj] then
+                            local petList = petTable[obj.Name]
+                            truePetMap[obj] = petList[math.random(1, #petList)]
                         end
-                    end)
-                    wait(11)
+                        table.insert(eggs, obj)
+                    end
                 end
-            end)()
-        else
-            Rayfield:Notify({Title = "⛔ Auto Mode Stopped", Content = "Stopped auto randomizer.", Duration = 2})
+            end
         end
+        return eggs
     end
-})
 
--- ✅ Initial ESP
-for _, egg in pairs(getNearbyEggs(60)) do
-    applyESP(egg, truePetMap[egg])
+    -- 🎲 Randomize Function
+    local function randomizeEggs(callback)
+        if cooldown then
+            Rayfield:Notify({Title = "⏳ Cooldown Active", Content = "Please wait before randomizing again.", Duration = 3})
+            return
+        end
+
+        cooldown = true
+        local timer = 10
+        coroutine.wrap(function()
+            while timer > 0 do
+                if callback then
+                    pcall(callback, "Cooldown: " .. timer .. "s left...") -- PATCH
+                end
+                task.wait(1)
+                timer -= 1
+            end
+            if callback then
+                pcall(callback, "🎲 Randomize Pets") -- PATCH
+            end
+            cooldown = false
+        end)()
+
+        local eggs = getNearbyEggs(60)
+        for _, egg in ipairs(eggs) do
+            local pets = petTable[egg.Name]
+            local chosen = pets[math.random(1, #pets)]
+            truePetMap[egg] = chosen
+            applyESP(egg, chosen)
+        end
+        Rayfield:Notify({Title = "✅ Eggs Randomized", Content = "Total: " .. #eggs, Duration = 3})
+    end
+
+    -- 👁️ ESP Toggle
+    MainTab:CreateToggle({
+        Name = "👁️ ESP",
+        CurrentValue = true,
+        Callback = function(value)
+            espEnabled = value
+            for _, egg in pairs(getNearbyEggs(60)) do
+                if espEnabled then
+                    applyESP(egg, truePetMap[egg])
+                else
+                    removeESP(egg)
+                end
+            end
+        end
+    })
+
+    -- 🎲 Randomize Button
+    local randomizeButton
+    randomizeButton = MainTab:CreateButton({
+        Name = "🎲 Randomize Pets",
+        Callback = function()
+            randomizeEggs(function(text)
+                -- Some Rayfield versions don't expose Set() on buttons; guard it.
+                if randomizeButton and typeof(randomizeButton) == "table" and randomizeButton.Set then
+                    pcall(function() randomizeButton:Set(text) end)
+                end
+            end)
+        end
+    })
+
+    -- 🔁 Auto Randomizer Toggle
+    MainTab:CreateToggle({
+        Name = "🔁 Auto Randomizer",
+        CurrentValue = false,
+        Callback = function(value)
+            autoRunning = value
+            if autoRunning then
+                Rayfield:Notify({Title = "🔁 Auto Mode", Content = "Auto Randomizing every 10s", Duration = 3})
+                coroutine.wrap(function()
+                    while autoRunning do
+                        randomizeEggs(function(text)
+                            if randomizeButton and typeof(randomizeButton) == "table" and randomizeButton.Set then
+                                pcall(function() randomizeButton:Set(text) end)
+                            end
+                        end)
+                        task.wait(11)
+                    end
+                end)()
+            else
+                Rayfield:Notify({Title = "⛔ Auto Mode Stopped", Content = "Stopped auto randomizer.", Duration = 2})
+            end
+        end
+    })
+
+    -- ✅ Initial ESP
+    for _, egg in pairs(getNearbyEggs(60)) do
+        applyESP(egg, truePetMap[egg])
+    end
 end
+
+-- Wait for load duration then fade out and init script
+task.delay(LOAD_DURATION, function()
+    -- Fade out loader UI
+    TweenService:Create(loaderFrame, TweenInfo.new(FADE_TIME), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(loaderText, TweenInfo.new(FADE_TIME), {TextTransparency = 1}):Play()
+    TweenService:Create(progressBarBG, TweenInfo.new(FADE_TIME), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(progressBarFill, TweenInfo.new(FADE_TIME), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(progressPercentage, TweenInfo.new(FADE_TIME), {TextTransparency = 1}):Play() -- ADDED fade
+    task.wait(FADE_TIME)
+
+    loaderGui:Destroy()
+    unlockCamera()
+    restoreCharacter()
+
+    -- Initialize Egg Randomizer UI & Logic
+    InitializeEggRandomizer()
+end)
