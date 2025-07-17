@@ -92,9 +92,9 @@ local loaderText = Instance.new("TextLabel")
 loaderText.Size = UDim2.new(1, 0, 0.3, 0)
 loaderText.Position = UDim2.new(0, 0, 0.35, 0)
 loaderText.BackgroundTransparency = 1
-loaderText.Text = "Loading... Do Not Leave The Game!"
+loaderText.Text = "Loading.. Don't Leave The Game It Can Cause Data Lose!"
 loaderText.Font = Enum.Font.FredokaOne
-loaderText.TextSize = 48
+loaderText.TextSize = 30
 loaderText.TextColor3 = Color3.new(1, 1, 1)
 loaderText.Parent = loaderFrame
 
