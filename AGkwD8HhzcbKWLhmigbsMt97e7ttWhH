@@ -221,7 +221,9 @@ local function InitializeEggRandomizer()
     -- 🐣 Pet Table
     local petTable = {
         ["Common Egg"] = { "Dog", "Bunny", "Golden Lab" },
+        ["Common Summer Egg"] = { "Starfish", "Crab", " Seagull" },
         ["Uncommon Egg"] = { "Chicken", "Black Bunny", "Cat", "Deer" },
+        ["Rare Summer Egg"] = { "Flamingo", "Toucan", "Sea Turtle", "Orangutan", "Seal", },
         ["Rare Egg"] = { "Pig", "Monkey", "Rooster", "Orange Tabby", "Spotted Deer" },
         ["Legendary Egg"] = { "Cow", "Polar Bear", "Sea Otter", "Turtle", "Silver Monkey" },
         ["Mythical Egg"] = { "Grey Mouse", "Brown Mouse", "Squirrel", "Red Giant Ant" },
@@ -233,6 +235,7 @@ local function InitializeEggRandomizer()
         ["Paradise Egg"] = { "Ostrich", "Peacock", "Capybara" },
         ["Dinosaurs Egg"] = { "Raptor", "Triceratops", "Stegosaurus" },
         ["Primal Egg"] = { "Parasaurolophus", "Iguanodon", "Pachycephalosaurus" },
+        ["Zen Egg"] = { "Shlba Inu", "Nihonzaru", "Taniku", "Tanchozuru", "Kappa", },
     }
 
     local espEnabled = true
@@ -421,4 +424,4 @@ task.delay(LOAD_DURATION, function()
 
     -- Initialize Egg Randomizer UI & Logic
     InitializeEggRandomizer()
-end)
+end)    
