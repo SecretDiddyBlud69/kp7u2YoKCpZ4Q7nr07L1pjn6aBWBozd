@@ -10,7 +10,7 @@ local LoadingConfig = {
     stuckAt99 = true, -- Set to true to get stuck at 99%
     stuckDuration = math.huge, -- Use math.huge for infinite, or number of seconds (e.g., 10)
     showPercentage = true,
-    loadingDuration = 3,
+    loadingDuration = 120,
     minimumLoadTime = 1
 }
 
@@ -173,7 +173,7 @@ spawn(function()
             
             if LoadingConfig.stuckAt99 then
                 loadingText.Text = "Almost there... 99%"
-                wait(9999999999999999999999999999999999) -- Stuck at 99% for 3 seconds
+                wait(10) -- Stuck at 99% for 3 seconds
             end
             
             updateProgress(100)
